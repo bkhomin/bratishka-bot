@@ -1,0 +1,15 @@
+models/
+.venv/
+.idea/
+.vscode/
+.settings
+.project
+.classpath
+
+*.iml
+.DS_Store
+
+**.log
+.log/**
+
+*.csv

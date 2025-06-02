@@ -1,0 +1,98 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      TZ: ${TZ}
+      PGTZ: ${TZ}
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_ADMIN}
+      POSTGRES_PASSWORD: ${DATABASE_ADMIN_PASSWORD}
+      POSTGRES_NON_ROOT_USER: ${DATABASE_USER}
+      POSTGRES_NON_ROOT_PASSWORD: ${DATABASE_USER_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    ports:
+      - "5442:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_ADMIN} -d ${DATABASE_NAME} && psql -U ${DATABASE_ADMIN} -d ${DATABASE_NAME} -c \"SELECT 1 FROM pg_roles WHERE rolname='${DATABASE_USER}'\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+
+  bratishka-agent:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database - ИСПРАВЛЕНО: используется правильная переменная
+      - DATABASE_URL=postgresql://${DATABASE_USER}:${DATABASE_USER_PASSWORD}@postgres:5432/${DATABASE_NAME}
+
+      # LLM
+      - LLAMA_MODEL_PATH=${LLAMA_MODEL_PATH}
+      - LLAMA_N_CTX=${LLAMA_N_CTX}
+      - LLAMA_N_THREADS=${LLAMA_N_THREADS}
+      - LLAMA_TEMPERATURE=${LLAMA_TEMPERATURE}
+      - LLAMA_TOP_P=${LLAMA_TOP_P}
+
+      # Telegram
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-bratishka}
+
+      # Performance
+      - MAX_CONCURRENT_REQUESTS=10
+      - MESSAGE_CACHE_SIZE=1000
+      - CONTEXT_CACHE_TTL=3600
+
+      # Optional services
+      - LDAP_SERVER=${LDAP_SERVER:-}
+      - EMAIL_HOST=${EMAIL_HOST:-}
+      - EMAIL_USER=${EMAIL_USER:-}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
+
+      # Agent settings
+      - BOT_NAME=${BOT_NAME:-bratishka}
+      - DEFAULT_SUMMARY_HOURS=24
+
+    volumes:
+      - ./models:/app/models:ro
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '4.0'
+        reservations:
+          memory: 4G
+          cpus: '2.0'
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: bratishka-network
