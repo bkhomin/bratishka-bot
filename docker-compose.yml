@@ -37,38 +37,21 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      # Database - ИСПРАВЛЕНО: используется правильная переменная
-      - DATABASE_URL=postgresql://${DATABASE_USER}:${DATABASE_USER_PASSWORD}@postgres:5432/${DATABASE_NAME}
-
-      # LLM
-      - LLAMA_MODEL_PATH=${LLAMA_MODEL_PATH}
-      - LLAMA_N_CTX=${LLAMA_N_CTX}
-      - LLAMA_N_THREADS=${LLAMA_N_THREADS}
-      - LLAMA_TEMPERATURE=${LLAMA_TEMPERATURE}
-      - LLAMA_TOP_P=${LLAMA_TOP_P}
-
-      # Telegram
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-bratishka}
-
-      # Performance
-      - MAX_CONCURRENT_REQUESTS=10
-      - MESSAGE_CACHE_SIZE=1000
-      - CONTEXT_CACHE_TTL=3600
-
-      # Optional services
-      - LDAP_SERVER=${LDAP_SERVER:-}
-      - EMAIL_HOST=${EMAIL_HOST:-}
-      - EMAIL_USER=${EMAIL_USER:-}
-      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
-
-      # Agent settings
-      - BOT_NAME=${BOT_NAME:-bratishka}
-      - DEFAULT_SUMMARY_HOURS=24
-
+      - BOT_USERNAME=${BOT_USERNAME}
+      - DEFAULT_TIME_HOURS=${DEFAULT_TIME_HOURS}
+      - MODEL_PATH=${MODEL_PATH}
+      - MODEL_CTX=${MODEL_CTX}
+      - MODEL_THREADS=${MODEL_THREADS}
+      - MODEL_GPU_LAYERS=${MODEL_GPU_LAYERS}
+      - CHROMA_DB_PATH=/app/chroma_db
+      - DATABASE_HOST=${DATABASE_HOST}
+      - PG_DATABASE=${PG_DATABASE}
+      - PG_USER=${PG_USER}
+      - PG_PASSWORD=${PG_PASSWORD}
     volumes:
       - ./models:/app/models:ro
-      - ./data:/app/data
+      - ./chroma_db:/app/chroma_db
       - ./.env:/app/.env:ro
 
     restart: unless-stopped
