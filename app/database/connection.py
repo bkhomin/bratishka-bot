@@ -11,7 +11,7 @@ Base = declarative_base()
 
 def get_database_url():
     """Безопасное получение DATABASE_URL с проверками"""
-    database_url = Config.DATABASE_URL
+    database_url = Config.get_database_url()
 
     if not database_url:
         # Fallback URL для разработки

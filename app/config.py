@@ -3,7 +3,16 @@ from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# Загружаем .env файл из корня проекта
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env_path = os.path.join(project_root, '.env')
+
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+    print(f"✅ Загружен .env файл: {env_path}")
+else:
+    print(f"⚠️ .env файл не найден: {env_path}")
+    print("Создайте .env файл в корне проекта или установите переменные окружения")
 
 
 class Config:
@@ -52,8 +61,8 @@ class Config:
     REGISTRATION_SESSION_TIMEOUT = int(os.getenv("REGISTRATION_SESSION_TIMEOUT", 30))
     BOT_NAME = os.getenv("BOT_NAME", "bratishka")
 
-    @property
-    def DATABASE_URL(self) -> str:
+    @classmethod
+    def get_database_url(self) -> str:
         """Собирает DATABASE_URL из компонентов"""
         if not all([self.DATABASE_USER, self.DATABASE_USER_PASSWORD, self.DATABASE_HOST, self.DATABASE_NAME]):
             return ""
@@ -63,10 +72,6 @@ class Config:
         user = quote_plus(self.DATABASE_USER)
 
         return f"postgresql://{user}:{password}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
-
-    @property
-    def LDAP_ENABLED(self) -> bool:
-        return bool(self.LDAP_SERVER)
 
     @classmethod
     def validate(cls) -> list[str]:
@@ -92,3 +97,40 @@ class Config:
             errors.append("TELEGRAM_BOT_TOKEN не установлен")
 
         return errors
+
+    @classmethod
+    def is_ldap_enabled(cls) -> bool:
+        """Проверка включен ли LDAP (исправлена property ошибка)"""
+        return bool(cls.LDAP_SERVER)
+
+    @classmethod
+    def print_debug_info(cls):
+        """Отладочная информация о конфигурации"""
+        print("\n" + "=" * 50)
+        print("🔧 КОНФИГУРАЦИЯ BRATISHKA")
+        print("=" * 50)
+
+        print(f"📂 Корень проекта: {project_root}")
+        print(f"📄 .env файл: {env_path}")
+        print(f"📄 .env существует: {os.path.exists(env_path)}")
+
+        print("\n📊 ОСНОВНЫЕ НАСТРОЙКИ:")
+        print(f"DATABASE_URL: {'✅ установлен' if cls.DATABASE_URL else '❌ не установлен'}")
+        print(f"TELEGRAM_BOT_TOKEN: {'✅ установлен' if cls.TELEGRAM_BOT_TOKEN else '❌ не установлен'}")
+        print(f"LLAMA_MODEL_PATH: {cls.LLAMA_MODEL_PATH or '❌ не установлен'}")
+
+        if cls.LLAMA_MODEL_PATH:
+            print(f"Модель существует: {'✅' if os.path.exists(cls.LLAMA_MODEL_PATH) else '❌'}")
+
+        print(f"\n📧 EMAIL настройки:")
+        print(f"EMAIL_HOST: {cls.EMAIL_HOST or '❌ не установлен'}")
+        print(f"EMAIL_USER: {'✅ установлен' if cls.EMAIL_USER else '❌ не установлен'}")
+
+        print(f"\n🔗 LDAP: {'✅ включен' if cls.is_ldap_enabled() else '❌ отключен'}")
+
+        print("=" * 50)
+
+
+# Печатаем отладочную информацию при импорте модуля
+if __name__ == "__main__" or os.getenv("DEBUG_CONFIG"):
+    Config.print_debug_info()

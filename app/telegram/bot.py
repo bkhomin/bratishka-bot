@@ -30,7 +30,7 @@ class BratishkaBot:
         self._request_semaphore = asyncio.Semaphore(Config.MAX_CONCURRENT_REQUESTS)
 
         # Инициализация сервисов
-        if Config.LDAP_ENABLED:
+        if Config.is_ldap_enabled():
             self.ldap_service = LDAPService()
             self.auth_service = AuthService(self.ldap_service)
         else:
@@ -136,7 +136,7 @@ class BratishkaBot:
 
             # Проверка состояния сервисов
             email_status = "✅ настроен" if self.email_service.is_configured else "❌ не настроен"
-            ldap_status = "✅ включен" if Config.LDAP_ENABLED else "❌ отключен"
+            ldap_status = "✅ включен" if Config.is_ldap_enabled() else "❌ отключен"
 
             status_text = f"""🔧 Статус системы {Config.BOT_NAME}
 
@@ -206,6 +206,8 @@ class BratishkaBot:
             message_text = update.message.text or ""
             chat_id = update.effective_chat.id
 
+            logger.debug(f"Получено сообщение от {telegram_id}: '{message_text[:50]}...'")
+
             async with async_session() as db:
                 # Проверка регистрации
                 registration_session = await self.registration_service.get_registration_session(db, telegram_id)
@@ -215,13 +217,16 @@ class BratishkaBot:
 
                 # Аутентификация
                 user, auth_message = await self.auth_service.check_access(db, telegram_id)
+                logger.debug(f"Пользователь {telegram_id}: {'найден' if user else 'не найден'}")
 
-                # Создание/обновление чата
+                # Создание/обновление чата - ИСПРАВЛЕННАЯ ВЕРСИЯ
                 chat_data = {
                     'type': update.effective_chat.type,
-                    'title': update.effective_chat.title,
-                    'description': update.effective_chat.description
+                    'title': getattr(update.effective_chat, 'title', None),
+                    'description': getattr(update.effective_chat, 'description', None)
                 }
+                logger.debug(f"Обрабатывается чат: {chat_data}")
+
                 chat = await self.chat_service.get_or_create_chat(db, chat_id, chat_data)
 
                 # Добавление участника
@@ -494,9 +499,16 @@ class BratishkaBot:
         logger.info("Завершение работы Bratishka Bot...")
 
         if self.app:
-            await self.app.updater.stop()
-            await self.app.stop()
-            await self.app.shutdown()
+            try:
+                # Проверяем что updater запущен перед остановкой
+                if self.app.updater.running:
+                    await self.app.updater.stop()
+                await self.app.stop()
+                await self.app.shutdown()
+            except RuntimeError as e:
+                # Игнорируем ошибки остановки не запущенного updater
+                if "not running" not in str(e).lower():
+                    raise
 
         await llm_pool.shutdown()
         await db_manager.close_pool()

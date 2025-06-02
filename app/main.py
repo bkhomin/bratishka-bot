@@ -17,9 +17,9 @@ logging.basicConfig(
 )
 
 # Отключаем избыточное логирование
-logging.getLogger('telegram').setLevel(logging.WARNING)
-logging.getLogger('httpx').setLevel(logging.WARNING)
-logging.getLogger('asyncio').setLevel(logging.WARNING)
+logging.getLogger('telegram').setLevel(logging.INFO)
+logging.getLogger('httpx').setLevel(logging.WARN)
+logging.getLogger('asyncio').setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
 

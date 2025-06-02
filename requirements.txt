@@ -5,7 +5,8 @@ pydantic==2.10.3
 # LLM
 llama-cpp-python==0.3.9
 
-# Database - используем самые новые версии
+# Database - ВАЖНО: добавлен greenlet для SQLAlchemy async
+greenlet>=3.0.0
 asyncpg>=0.30.0
 sqlalchemy>=2.0.36
 alembic>=1.14.0
@@ -22,4 +23,3 @@ ldap3==2.9.1
 # Utilities
 requests==2.32.3
 python-dateutil==2.8.2
-fastapi~=0.115.12

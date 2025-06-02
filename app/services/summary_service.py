@@ -25,7 +25,7 @@ class SummaryService:
             chat_id: str,
             hours_back: int = 24,
             include_reasoning: bool = False,
-            use_cache: bool = True
+            use_cache: bool = False
     ) -> Dict[str, Any]:
         """Создание сводки с кешированием"""
         try:

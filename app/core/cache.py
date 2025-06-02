@@ -70,6 +70,6 @@ def make_cache_key(*args, **kwargs) -> str:
 
 
 # Глобальные экземпляры кеша
-message_cache = SimpleCache(ttl=300)  # 5 минут
-context_cache = SimpleCache(ttl=3600)  # 1 час
-user_cache = SimpleCache(ttl=1800)  # 30 минут
+message_cache = SimpleCache(300)  # 5 минут
+context_cache = SimpleCache(3600)  # 1 час
+user_cache = SimpleCache(1800)  # 30 минут
