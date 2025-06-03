@@ -1,40 +1,32 @@
 services:
-  postgres:
-    image: postgres:16-alpine
+  chromadb:
+    image: chromadb/chroma:0.6.0
+    container_name: bratishka-chromadb
     environment:
-      TZ: ${TZ}
-      PGTZ: ${TZ}
-      POSTGRES_DB: ${DATABASE_NAME}
-      POSTGRES_USER: ${DATABASE_ADMIN}
-      POSTGRES_PASSWORD: ${DATABASE_ADMIN_PASSWORD}
-      POSTGRES_NON_ROOT_USER: ${DATABASE_USER}
-      POSTGRES_NON_ROOT_PASSWORD: ${DATABASE_USER_PASSWORD}
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - ANONYMIZED_TELEMETRY=False
     ports:
-      - "5442:5432"
+      - "8000:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_ADMIN} -d ${DATABASE_NAME} && psql -U ${DATABASE_ADMIN} -d ${DATABASE_NAME} -c \"SELECT 1 FROM pg_roles WHERE rolname='${DATABASE_USER}'\""]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
       retries: 5
-    command: >
-      postgres
-      -c shared_preload_libraries=pg_stat_statements
-      -c pg_stat_statements.track=all
-      -c max_connections=200
-      -c shared_buffers=256MB
-      -c effective_cache_size=1GB
-      -c work_mem=4MB
-      -c maintenance_work_mem=64MB
+      start_period: 30s
+    networks:
+      - bratishka-network
 
-  bratishka-agent:
-    build: .
+  bratishka-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bratishka-bot
     depends_on:
-      postgres:
+      chromadb:
         condition: service_healthy
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
@@ -44,38 +36,52 @@ services:
       - MODEL_CTX=${MODEL_CTX}
       - MODEL_THREADS=${MODEL_THREADS}
       - MODEL_GPU_LAYERS=${MODEL_GPU_LAYERS}
-      - CHROMA_DB_PATH=/app/chroma_db
-      - DATABASE_HOST=${DATABASE_HOST}
-      - PG_DATABASE=${PG_DATABASE}
-      - PG_USER=${PG_USER}
-      - PG_PASSWORD=${PG_PASSWORD}
+      - MODEL_TEMPERATURE=${MODEL_TEMPERATURE}
+      - MODEL_TOP_P=${MODEL_TOP_P}
+      - MODEL_MAX_TOKENS=${MODEL_MAX_TOKENS}
+      - CHROMA_HOST=${CHROMA_HOST_DOCKER}
+      - CHROMA_PORT=${CHROMA_PORT}
+      - DEBUG=${DEBUG}
+      - LOG_LEVEL=${LOG_LEVEL}
+      # Оптимизация OpenMP для производительности
+      - OMP_NUM_THREADS=${OMP_NUM_THREADS}
+      - MKL_NUM_THREADS=${MKL_NUM_THREADS}
+      - OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS}
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
+      - PYTHONDONTWRITEBYTECODE=${PYTHONDONTWRITEBYTECODE}
     volumes:
       - ./models:/app/models:ro
-      - ./chroma_db:/app/chroma_db
       - ./.env:/app/.env:ro
-
     restart: unless-stopped
-
     deploy:
       resources:
         limits:
-          memory: 8G
-          cpus: '4.0'
+          memory: ${DOCKER_MEMORY_LIMIT}
+          cpus: '${DOCKER_CPU_LIMIT}'
         reservations:
-          memory: 4G
-          cpus: '2.0'
-
+          memory: ${DOCKER_MEMORY_RESERVATION}
+          cpus: '${DOCKER_CPU_RESERVATION}'
+    # Оптимизация памяти
+#    sysctls:
+#      - vm.mmap_min_addr=4096
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     healthcheck:
       test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
+    networks:
+      - bratishka-network
 
 volumes:
-  postgres_data:
+  chromadb_data:
     driver: local
 
 networks:
-  default:
+  bratishka-network:
+    driver: bridge
     name: bratishka-network
