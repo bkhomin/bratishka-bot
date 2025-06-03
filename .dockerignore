@@ -1,0 +1,95 @@
+# ==========================================
+# .dockerignore для оптимизации сборки
+# Исключаем ненужные файлы из контекста
+# ==========================================
+
+# Директории разработки
+.git/
+.github/
+.vscode/
+.idea/
+.settings/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Модели (будут подключены через volume)
+models/
+
+# Данные
+chroma_db/
+*.db
+*.sqlite
+*.sqlite3
+
+# Логи
+*.log
+.log/
+logs/
+
+# Временные файлы
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Виртуальные окружения
+.env/
+.venv/
+env/
+venv/
+ENV/
+
+# Документация и README
+*.md
+docs/
+documentation/
+
+# Конфигурация IDE
+*.iml
+.project
+.classpath
+.DS_Store
+Thumbs.db
+
+# Скрипты разработки
+scripts/
+prototypes/
+tests/
+test_*
+
+# Docker файлы (кроме основных)
+docker-compose.override.yml
+docker-compose.*.yml
+!docker-compose.yml
+Dockerfile.*
+!Dockerfile
+
+# Файлы сборки
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Конфигурация CI/CD (если есть)
+.travis.yml
+.gitlab-ci.yml
+Jenkinsfile
+
+# Системные файлы
+.dockerignore
+.gitignore
+.gitattributes

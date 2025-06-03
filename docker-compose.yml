@@ -11,19 +11,35 @@ services:
     volumes:
       - chromadb_data:/chroma/chroma
     restart: unless-stopped
+    # Улучшенный healthcheck для ChromaDB
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 30s
+      interval: 15s
       timeout: 10s
       retries: 5
       start_period: 30s
     networks:
       - bratishka-network
+    # Ограничения ресурсов для ChromaDB
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 
   bratishka-bot:
     build:
       context: .
       dockerfile: Dockerfile
+      # Оптимизация сборки с кэшированием
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+      # Используем кэш от предыдущих сборок
+      cache_from:
+        - bratishka-bot:latest
     container_name: bratishka-bot
     depends_on:
       chromadb:
@@ -43,7 +59,7 @@ services:
       - CHROMA_PORT=${CHROMA_PORT}
       - DEBUG=${DEBUG}
       - LOG_LEVEL=${LOG_LEVEL}
-      # Оптимизация OpenMP для производительности
+      # Оптимизация производительности
       - OMP_NUM_THREADS=${OMP_NUM_THREADS}
       - MKL_NUM_THREADS=${MKL_NUM_THREADS}
       - OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS}
@@ -61,19 +77,10 @@ services:
         reservations:
           memory: ${DOCKER_MEMORY_RESERVATION}
           cpus: '${DOCKER_CPU_RESERVATION}'
-    # Оптимизация памяти
-#    sysctls:
-#      - vm.mmap_min_addr=4096
     ulimits:
       memlock:
         soft: -1
         hard: -1
-    healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
     networks:
       - bratishka-network
 
