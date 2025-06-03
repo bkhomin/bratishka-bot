@@ -1,3 +1,5 @@
+chroma_db/
+prototypes/
 models/
 .venv/
 .idea/
