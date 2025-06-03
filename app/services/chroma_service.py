@@ -61,10 +61,7 @@ class ChromaService:
             try:
                 self.collections[chat_id] = self.client.get_or_create_collection(
                     name=collection_name,
-                    metadata={"hnsw:space": "cosine"},
-                    embedding_function=chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction(
-                        model_name="sentence-transformers/all-mpnet-base-v2"
-                    )
+                    metadata={"hnsw:space": "cosine"}
                 )
                 logger.debug(f"Получена коллекция для чата {chat_id}")
             except Exception as e:
@@ -115,7 +112,7 @@ class ChromaService:
                 ids=[doc_id]
             )
 
-            logger.info(f"Сохранено сообщение {doc_id} из чата {chat_id}")
+            logger.debug(f"Сохранено сообщение {doc_id} из чата {chat_id}")
             return True
 
         except Exception as e:

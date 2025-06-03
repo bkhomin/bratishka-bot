@@ -28,20 +28,13 @@ def setup_logging(level: str = 'INFO', debug: bool = False) -> logging.Logger:
 
     # Настраиваем уровни для внешних библиотек
     logging.getLogger('telegram').setLevel(logging.INFO)
-
-    # ИСПРАВЛЕНИЕ: Отключаем DEBUG для HTTP клиентов
     logging.getLogger('httpx').setLevel(logging.WARNING)
-    logging.getLogger('httpcore').setLevel(logging.WARNING)
-    logging.getLogger('httpcore.connection').setLevel(logging.WARNING)
-    logging.getLogger('httpcore.http11').setLevel(logging.WARNING)
-
     logging.getLogger('asyncio').setLevel(logging.WARNING)
 
-    # В debug режиме показываем больше информации только для наших компонентов
+    # В debug режиме показываем больше информации
     if debug:
-        logging.getLogger('app').setLevel(logging.DEBUG)
-        logging.getLogger('llama_cpp').setLevel(logging.INFO)  # Уменьшаем с DEBUG до INFO
-        logging.getLogger('chromadb').setLevel(logging.INFO)
+        logging.getLogger('llama_cpp').setLevel(logging.DEBUG)
+        logging.getLogger('chromadb').setLevel(logging.DEBUG)
     else:
         logging.getLogger('llama_cpp').setLevel(logging.WARNING)
         logging.getLogger('chromadb').setLevel(logging.WARNING)

@@ -11,19 +11,35 @@ services:
     volumes:
       - chromadb_data:/chroma/chroma
     restart: unless-stopped
+    # Улучшенный healthcheck для ChromaDB
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 30s
+      interval: 15s
       timeout: 10s
       retries: 5
       start_period: 30s
     networks:
       - bratishka-network
+    # Ограничения ресурсов для ChromaDB
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 
   bratishka-bot:
     build:
       context: .
       dockerfile: Dockerfile
+      # Оптимизация сборки с кэшированием
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+      # Используем кэш от предыдущих сборок
+      cache_from:
+        - bratishka-bot:latest
     container_name: bratishka-bot
     depends_on:
       chromadb:
@@ -31,23 +47,24 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - BOT_USERNAME=${BOT_USERNAME}
-      - DEFAULT_TIME_HOURS=${DEFAULT_TIME_HOURS:-2}
-      - MODEL_PATH=${MODEL_PATH:-./models/model.gguf}
-      - MODEL_CTX=${MODEL_CTX:-2048}
-      - MODEL_THREADS=${MODEL_THREADS:-4}
-      - MODEL_GPU_LAYERS=${MODEL_GPU_LAYERS:-0}
-      - MODEL_TEMPERATURE=${MODEL_TEMPERATURE:-0.6}
-      - MODEL_TOP_P=${MODEL_TOP_P:-0.95}
-      - MODEL_MAX_TOKENS=${MODEL_MAX_TOKENS:-2048}
-      - CHROMA_HOST=${CHROMA_HOST_DOCKER:-chromadb}
-      - CHROMA_PORT=${CHROMA_PORT:-8000}
-      - DEBUG=${DEBUG:-0}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - OMP_NUM_THREADS=${OMP_NUM_THREADS:-4}
-      - MKL_NUM_THREADS=${MKL_NUM_THREADS:-4}
-      - OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-4}
-      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED:-1}
-      - PYTHONDONTWRITEBYTECODE=${PYTHONDONTWRITEBYTECODE:-1}
+      - DEFAULT_TIME_HOURS=${DEFAULT_TIME_HOURS}
+      - MODEL_PATH=${MODEL_PATH}
+      - MODEL_CTX=${MODEL_CTX}
+      - MODEL_THREADS=${MODEL_THREADS}
+      - MODEL_GPU_LAYERS=${MODEL_GPU_LAYERS}
+      - MODEL_TEMPERATURE=${MODEL_TEMPERATURE}
+      - MODEL_TOP_P=${MODEL_TOP_P}
+      - MODEL_MAX_TOKENS=${MODEL_MAX_TOKENS}
+      - CHROMA_HOST=${CHROMA_HOST_DOCKER}
+      - CHROMA_PORT=${CHROMA_PORT}
+      - DEBUG=${DEBUG}
+      - LOG_LEVEL=${LOG_LEVEL}
+      # Оптимизация производительности
+      - OMP_NUM_THREADS=${OMP_NUM_THREADS}
+      - MKL_NUM_THREADS=${MKL_NUM_THREADS}
+      - OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS}
+      - PYTHONUNBUFFERED=${PYTHONUNBUFFERED}
+      - PYTHONDONTWRITEBYTECODE=${PYTHONDONTWRITEBYTECODE}
     volumes:
       - ./models:/app/models:ro
       - ./.env:/app/.env:ro
@@ -55,22 +72,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${DOCKER_MEMORY_LIMIT:-8G}
-          cpus: '${DOCKER_CPU_LIMIT:-4.0}'
+          memory: ${DOCKER_MEMORY_LIMIT}
+          cpus: '${DOCKER_CPU_LIMIT}'
         reservations:
-          memory: ${DOCKER_MEMORY_RESERVATION:-4G}
-          cpus: '${DOCKER_CPU_RESERVATION:-2.0}'
+          memory: ${DOCKER_MEMORY_RESERVATION}
+          cpus: '${DOCKER_CPU_RESERVATION}'
     ulimits:
       memlock:
         soft: -1
         hard: -1
-    # Упрощенный healthcheck - проверяем только запуск сервиса
-    healthcheck:
-      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/tmp/service_started') else 1)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
     networks:
       - bratishka-network
 
