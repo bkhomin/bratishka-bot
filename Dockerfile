@@ -28,7 +28,9 @@ COPY app/ ./app/
 
 # Создание директорий и установка прав
 RUN mkdir -p models && \
-    chown -R bratishka:bratishka /app
+    mkdir -p /tmp && \
+    chown -R bratishka:bratishka /app && \
+    chown -R bratishka:bratishka /tmp
 
 # Переключаемся на непривилегированного пользователя
 USER bratishka
@@ -38,9 +40,9 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import sys; sys.exit(0)" || exit 1
+# Healthcheck - создаем файл когда модель загружена
+HEALTHCHECK --interval=60s --timeout=30s --start-period=300s --retries=5 \
+    CMD python -c "import sys; import os; sys.exit(0 if os.path.exists('/tmp/model_loaded') else 1)" || exit 1
 
 # Запуск
 CMD ["python", "-m", "app.main"]
