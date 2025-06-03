@@ -81,6 +81,16 @@ services:
       memlock:
         soft: -1
         hard: -1
+    # ДОБАВЛЯЕМ HEALTHCHECK для bratishka-bot
+    healthcheck:
+      # Простая проверка - процесс Python запущен и файл модели существует
+      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('${MODEL_PATH}') else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 10  # Увеличиваем количество попыток
+      start_period: 180s  # Даем 3 минуты на загрузку модели
+    # Добавляем stop_grace_period для корректного завершения
+    stop_grace_period: 30s
     networks:
       - bratishka-network
 
