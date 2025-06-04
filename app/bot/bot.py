@@ -10,7 +10,7 @@ from app.config.settings import config
 from app.config.logging import get_logger
 from app.services.chroma_service import ChromaService
 from app.services.llm_service import LLMService
-from app.telegram.handlers import TelegramHandlers
+from app.bot.handlers import TelegramHandlers
 
 logger = get_logger(__name__)
 
@@ -162,7 +162,7 @@ class TelegramBot:
                 drop_pending_updates=True
             )
 
-            # Ждем пока бот работает
+            # Ждем пока бот работает - ИСПРАВЛЕНО
             await self.application.updater.idle()
 
         except Exception as e:

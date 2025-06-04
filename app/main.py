@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.config.settings import config
 from app.config.logging import setup_logging
-from app.telegram.bot import TelegramBot
+from app.bot.bot import TelegramBot
 
 
 async def main():

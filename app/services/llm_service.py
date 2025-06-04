@@ -2,8 +2,10 @@
 Сервис для работы с LLM
 """
 import asyncio
+import os
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import List, Tuple, Dict
 from llama_cpp import Llama
 
@@ -24,13 +26,40 @@ class LLMService:
         self.llm = None
         self._initialize_model()
 
+    def _get_model_path(self) -> str:
+        """
+        Получение корректного пути к модели
+
+        Returns:
+            Абсолютный путь к файлу модели
+        """
+        model_path = self.config.model_path
+
+        # Если путь относительный, делаем его относительно корня проекта
+        if not os.path.isabs(model_path):
+            # Получаем корневую директорию проекта (на 2 уровня выше от этого файла)
+            project_root = Path(__file__).parent.parent.parent
+            model_path = project_root / model_path
+
+        # Преобразуем в абсолютный путь
+        model_path = Path(model_path).resolve()
+
+        logger.debug(f"Путь к модели: {model_path}")
+
+        # Проверяем существование файла
+        if not model_path.exists():
+            raise FileNotFoundError(f"Файл модели не найден: {model_path}")
+
+        return str(model_path)
+
     def _initialize_model(self):
         """Инициализация языковой модели"""
         try:
-            logger.info(f"Загрузка модели: {self.config.model_path}")
+            model_path = self._get_model_path()
+            logger.info(f"Загрузка модели: {model_path}")
 
             self.llm = Llama(
-                model_path=self.config.model_path,
+                model_path=model_path,
                 n_ctx=self.config.n_ctx,
                 n_threads=self.config.n_threads,
                 n_gpu_layers=self.config.n_gpu_layers,
@@ -208,4 +237,3 @@ class LLMService:
         except Exception as e:
             logger.error(f"LLM health check failed: {e}")
             return False
-
